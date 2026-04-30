@@ -1,1 +1,1 @@
-worker: python watcher.py
+worker: chmod +x * bgmi && python watcher.py
