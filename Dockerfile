@@ -1,6 +1,12 @@
-FROM alpine:3.19
+FROM ubuntu:22.04
 
-RUN apk add --no-cache g++ python3 py3-pip
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    g++ \
+    python3 \
+    python3-pip \
+    && apt-get clean
 
 WORKDIR /app
 
