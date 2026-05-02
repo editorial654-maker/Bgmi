@@ -14,7 +14,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 # ============================================================
 # CONFIGURATION
 # ============================================================
-BOT_TOKEN = os.environ.get('BOT_TOKEN', '8402168828:AAEEYWZMAW--Wtr3wLDAYyTyiWw9cufH44U')
+BOT_TOKEN = os.environ.get('BOT_TOKEN', '8402168828:AAHTB8REJZNq8cUvmEMcnaAgowk46uB8GkI')
 ADMIN_ID = int(os.environ.get('ADMIN_ID', 6465928598))
 
 DATA_FILE = "zeta_users.json"
