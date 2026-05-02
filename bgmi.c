@@ -15,6 +15,7 @@
 #include <netinet/udp.h>
 #include <unistd.h>
 #include <signal.h>
+#include <fcntl.h>
 
 // ============================================================
 // CONFIGURATION
