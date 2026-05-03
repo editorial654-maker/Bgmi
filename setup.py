@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Zeta Bot Launcher - Auto installs compiler and runs bot
+Zeta Bot Launcher - Works without sudo (Railway/Termux compatible)
 Run: python3 start.py
 """
 
@@ -23,16 +23,16 @@ def detect_os():
     """Detect the operating system"""
     if os.path.exists('/data/data/com.termux/files/usr'):
         return 'termux'
+    elif os.path.exists('/.dockerenv') or os.path.exists('/railway'):
+        return 'railway'
     elif subprocess.run("which apt-get", shell=True, capture_output=True).returncode == 0:
         return 'debian'
-    elif subprocess.run("which yum", shell=True, capture_output=True).returncode == 0:
-        return 'redhat'
-    elif subprocess.run("which pacman", shell=True, capture_output=True).returncode == 0:
-        return 'arch'
+    elif subprocess.run("which apk", shell=True, capture_output=True).returncode == 0:
+        return 'alpine'
     return 'unknown'
 
 def install_compiler():
-    """Install C++ compiler based on OS"""
+    """Install C++ compiler based on OS (without sudo)"""
     os_type = detect_os()
     print(f"[+] Detected OS: {os_type}")
     
@@ -42,27 +42,24 @@ def install_compiler():
         run_command("pkg install clang -y", "Installing clang")
         return True
         
-    elif os_type == 'debian':
-        print("[+] Installing g++ for Debian/Ubuntu...")
-        run_command("sudo apt-get update -y", "Updating packages")
-        run_command("sudo apt-get install -y g++", "Installing g++")
+    elif os_type == 'railway' or os_type == 'debian':
+        print("[+] Installing g++ for Debian/Railway...")
+        # Railway runs as root, no sudo needed
+        run_command("apt-get update -y", "Updating packages")
+        run_command("apt-get install -y g++", "Installing g++")
         return True
         
-    elif os_type == 'redhat':
-        print("[+] Installing g++ for RHEL/CentOS...")
-        run_command("sudo yum install -y gcc-c++", "Installing g++")
-        return True
-        
-    elif os_type == 'arch':
-        print("[+] Installing g++ for Arch...")
-        run_command("sudo pacman -S --noconfirm gcc", "Installing gcc")
+    elif os_type == 'alpine':
+        print("[+] Installing g++ for Alpine...")
+        run_command("apk update", "Updating packages")
+        run_command("apk add g++", "Installing g++")
         return True
         
     else:
         print("[!] Unknown OS. Please install g++ manually:")
-        print("    Ubuntu/Debian: sudo apt-get install g++ -y")
+        print("    Ubuntu/Debian: apt-get install g++ -y")
         print("    Termux: pkg install clang -y")
-        print("    RHEL/CentOS: sudo yum install gcc-c++ -y")
+        print("    Alpine: apk add g++")
         return False
 
 def main():
@@ -88,6 +85,16 @@ def main():
             compiler = "g++"
         elif os.system("which clang++ > /dev/null 2>&1") == 0:
             compiler = "clang++"
+        else:
+            print("[!] Still no compiler found. Trying direct compile with available tools...")
+            # Try to use cc if available
+            if os.system("which cc > /dev/null 2>&1") == 0:
+                compiler = "cc"
+                print(f"[+] Found C compiler: {compiler}")
+    
+    if not compiler:
+        print("❌ No compiler available! Exiting.")
+        sys.exit(1)
     
     print(f"[+] Using compiler: {compiler}")
     
@@ -102,7 +109,12 @@ def main():
     
     if os.system(compile_cmd) != 0:
         print("❌ Compilation failed!")
-        sys.exit(1)
+        print("[*] Trying with relaxed flags...")
+        # Try with fewer optimizations
+        compile_cmd = f"{compiler} -O2 -pthread -o bgmi_beast bgmi.c"
+        if os.system(compile_cmd) != 0:
+            print("❌ Compilation still failing!")
+            sys.exit(1)
     
     print("✅ Compilation successful!")
     
@@ -111,7 +123,7 @@ def main():
     
     # Step 5: Install Python dependencies
     print("[+] Installing Python dependencies...")
-    os.system("pip3 install python-telegram-bot==20.7 requests --quiet")
+    os.system("pip3 install python-telegram-bot==20.7 requests --quiet 2>/dev/null || pip install python-telegram-bot==20.7 requests --quiet")
     
     # Step 6: Check if bot script exists
     if not os.path.exists("bgmibot.py"):
